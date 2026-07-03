@@ -1,0 +1,40 @@
+id: duplicate_payment
+version: "0.1"
+purpose: Surface payments that may have been issued more than once for the same obligation.
+hypothesis: >
+  Two or more payments to the same vendor with identical or near-identical
+  amount, invoice number, and close dates may represent the same invoice
+  paid twice (error or abuse).
+required_fields:
+  - payment.vendor_id
+  - payment.amount
+  - payment.invoice_number
+  - payment.paid_date
+  - payment.agency_id
+logic: >
+  Group payments by (vendor_id, amount). Within a group, flag pairs where
+  invoice_number matches exactly or differs only by whitespace/case, and
+  paid_date difference <= 90 days. Exact-invoice matches score higher than
+  amount-and-date-only matches.
+severity_inputs:
+  - duplicate_amount_dollars
+  - count_of_duplicates_in_group
+confidence_inputs:
+  - invoice_number_match_quality   # exact > normalized > amount-only
+  - date_proximity_days
+  - same_agency
+false_positive_risks:
+  - Legitimate recurring charges (rent, subscriptions) with same amount and vendor.
+  - Progress payments on one contract that reuse an invoice prefix.
+  - Credit-and-rebill corrections that appear as a repeated payment.
+validation_approach: >
+  Reviewer pulls both source payment records via evidence links, checks
+  contract terms for recurring-payment language, and confirms whether a
+  reversal/credit exists in the same period.
+output_fields:
+  - subject_type: payment
+  - matched_payment_ids
+  - invoice_match_quality
+  - severity
+  - confidence
+  - evidence_refs

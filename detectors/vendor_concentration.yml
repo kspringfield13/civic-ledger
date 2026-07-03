@@ -1,0 +1,40 @@
+id: vendor_concentration
+version: "0.1"
+purpose: Surface unusually concentrated spending from an agency to a single vendor.
+hypothesis: >
+  A vendor receiving a share of an agency's category spend far above peer
+  norms — especially with few competed awards — may indicate favoritism or
+  steering worth review.
+required_fields:
+  - award.agency_id
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - award.description        # for category grouping (v0: naive keywords)
+logic: >
+  Per agency and 12-month window, compute each vendor's share of total spend
+  and of category spend. Flag vendors above the 95th percentile share among
+  comparable agencies, weighted up when award count is high but competition
+  indicators are absent.
+severity_inputs:
+  - vendor_share_of_agency_spend
+  - total_dollars_to_vendor
+confidence_inputs:
+  - peer_baseline_sample_size
+  - category_classification_quality
+  - competition_indicator_availability
+false_positive_risks:
+  - Sole legitimate supplier in a specialized market or remote region.
+  - Agency mission that inherently concentrates spend (single major system).
+  - Category misclassification inflating apparent share.
+validation_approach: >
+  Reviewer compares against named peer agencies, checks for sole-source
+  justifications in the public record, and confirms category assignment.
+output_fields:
+  - subject_type: vendor
+  - agency_id
+  - spend_share
+  - peer_percentile
+  - severity
+  - confidence
+  - evidence_refs

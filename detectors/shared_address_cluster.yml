@@ -1,0 +1,40 @@
+id: shared_address_cluster
+version: "0.1"
+purpose: Surface clusters of nominally distinct vendors sharing an address, for bid-rigging or shell-entity review.
+hypothesis: >
+  Multiple vendors registered at the same normalized address that bid on or
+  win awards from the same agency may not be genuinely independent —
+  a pattern consistent with shell entities or coordinated bidding.
+required_fields:
+  - vendor.primary_address_id
+  - address.normalized
+  - award.vendor_id
+  - award.agency_id
+  - award.award_date
+logic: >
+  Group vendors by normalized address (excluding known registered-agent and
+  large office-building addresses via an allowlist). Flag clusters of >=2
+  vendors that received awards from the same agency within 24 months.
+severity_inputs:
+  - combined_award_dollars_in_cluster
+  - cluster_size
+confidence_inputs:
+  - address_normalization_quality
+  - allowlist_coverage          # is this a known agent/virtual-office address?
+  - overlap_of_officers         # via PersonOfficer records, if available
+false_positive_risks:
+  - Registered-agent or virtual-office addresses hosting unrelated companies.
+  - Business incubators and shared coworking locations.
+  - Corporate families (parent/subsidiary) that are disclosed and lawful.
+validation_approach: >
+  Reviewer checks the address against the agent/coworking allowlist, pulls
+  corporate registry records for disclosed affiliations, and looks for
+  officer overlap in public filings before treating the cluster as suspect.
+output_fields:
+  - subject_type: cluster
+  - address_id
+  - vendor_ids
+  - agency_ids
+  - severity
+  - confidence
+  - evidence_refs

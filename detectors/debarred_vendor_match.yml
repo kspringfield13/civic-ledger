@@ -1,0 +1,42 @@
+id: debarred_vendor_match
+version: "0.1"
+purpose: Surface awards or payments to entities matching active exclusion/debarment records.
+hypothesis: >
+  An award or payment dated within an exclusion record's active window, to a
+  vendor matching that record by UEI or normalized name+location, may
+  represent prohibited contracting with an excluded party.
+required_fields:
+  - vendor.uei
+  - vendor.normalized_name
+  - exclusion.uei
+  - exclusion.excluded_name
+  - exclusion.active_from
+  - exclusion.active_to
+  - award.award_date
+logic: >
+  Match vendors to exclusion records: exact UEI match (high confidence), else
+  normalized-name match plus postal-code agreement (medium). Flag awards/
+  payments whose date falls inside [active_from, active_to].
+severity_inputs:
+  - award_amount
+  - exclusion_type            # e.g. debarment vs administrative
+confidence_inputs:
+  - match_key                 # uei_exact | name_plus_location | name_only
+  - name_commonality          # common names lower confidence
+  - date_within_window_margin_days
+false_positive_risks:
+  - Different legal entity sharing a common name with an excluded party.
+  - Exclusion record lapsed or rescinded but stale in the snapshot used.
+  - Successor entity lawfully operating after resolution of the exclusion.
+validation_approach: >
+  Reviewer opens the official exclusion record via evidence link, verifies
+  UEI/identifiers directly at the authoritative source, and checks record
+  currency before any escalation.
+output_fields:
+  - subject_type: vendor
+  - exclusion_record_id
+  - matched_award_ids
+  - match_key
+  - severity
+  - confidence
+  - evidence_refs

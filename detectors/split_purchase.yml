@@ -1,0 +1,40 @@
+id: split_purchase
+version: "0.1"
+purpose: Surface purchase patterns consistent with splitting to stay under approval thresholds.
+hypothesis: >
+  Multiple awards/payments from one agency to one vendor, each just below a
+  known procurement threshold and close in time, may indicate an obligation
+  split to avoid competition or approval requirements.
+required_fields:
+  - award.agency_id
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - config.thresholds        # e.g. micro-purchase / simplified acquisition limits
+logic: >
+  For each (agency, vendor) pair, find sets of >=2 awards within a 30-day
+  window where each amount is within 15% below a configured threshold and the
+  set's combined amount exceeds that threshold.
+severity_inputs:
+  - combined_amount_over_threshold
+  - number_of_split_transactions
+confidence_inputs:
+  - proximity_to_threshold_pct
+  - time_window_days
+  - similarity_of_descriptions
+false_positive_risks:
+  - Genuinely separate needs that happen to price near a threshold.
+  - Blanket purchase agreements with legitimate frequent small orders.
+  - Threshold assumptions wrong for the jurisdiction or year in question.
+validation_approach: >
+  Reviewer verifies the applicable threshold for that agency/period, reads
+  award descriptions for distinct scope, and checks whether a competed
+  vehicle already covered the need.
+output_fields:
+  - subject_type: cluster
+  - award_ids
+  - threshold_referenced
+  - combined_amount
+  - severity
+  - confidence
+  - evidence_refs

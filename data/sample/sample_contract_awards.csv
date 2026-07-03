@@ -1,0 +1,6 @@
+award_id,agency,vendor_id,description,amount,award_date
+FAKE-AWD-0001,Department of Examples (FICTIONAL),1,Widget maintenance services,9500.00,2026-01-10
+FAKE-AWD-0002,Department of Examples (FICTIONAL),1,Widget maintenance services phase 2,9400.00,2026-01-22
+FAKE-AWD-0003,Department of Examples (FICTIONAL),2,Road resurfacing sample project,48000.00,2026-02-15
+FAKE-AWD-0004,Bureau of Placeholders (FICTIONAL),3,Advisory services demo,15000.00,2026-03-01
+FAKE-AWD-0005,Department of Examples (FICTIONAL),3,Road striping sample project,47500.00,2026-03-20

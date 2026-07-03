@@ -1,0 +1,5 @@
+vendor_id,name,uei,address,city,region,postal_code
+1,Example Widgets LLC (FICTIONAL),FAKEUEI00001,100 Test Ave,Sampleville,ZZ,00001
+2,Sample Paving Co (FICTIONAL),FAKEUEI00002,200 Placeholder Rd,Sampleville,ZZ,00001
+3,Acme Fictional Corp (FICTIONAL),FAKEUEI00003,200 Placeholder Rd,Sampleville,ZZ,00001
+4,Demo Consulting Group (FICTIONAL),FAKEUEI00004,300 Mock St,Testburg,ZZ,00002
