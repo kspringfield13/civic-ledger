@@ -1,0 +1,53 @@
+id: price_outlier
+version: "0.1"
+taxonomy_ref: [PROC-5, PAY-3]   # closest existing patterns; pricing-benchmark facet proposed for next taxonomy revision
+purpose: Surface awards priced far above what comparable buyers paid for similar goods or services in the same period.
+hypothesis: >
+  An award whose amount greatly exceeds the peer distribution for comparable
+  purchases in the same period may reflect overpayment worth review — a
+  pattern consistent with weak competition or favoritism, and equally
+  consistent with the innocent explanations listed below.
+required_fields:
+  - award.agency_id
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - award.description        # for category grouping (v0: naive keywords, same caveat as vendor_concentration)
+logic: >
+  Group awards into keyword categories per 12-month window across all
+  agencies in the dataset. Within a category window, compute the median and
+  95th percentile of award amounts. Flag an award only when (a) the category
+  group has >= 30 awards, (b) the amount is above the 95th percentile, and
+  (c) the amount is >= 3x the category median. A reviewer can verify by
+  listing the category peers and recomputing the median and percentile.
+severity_inputs:
+  - amount_over_category_median_dollars
+  - award_amount
+confidence_inputs:
+  - category_classification_quality   # naive keywords merge unlike purchases
+  - peer_group_sample_size
+  - description_specificity           # vague descriptions lower confidence
+false_positive_risks:
+  - Bundled or multi-year awards compared against single-delivery peers
+    (an award's amount may cover a scope its category peers do not).
+  - Category misclassification merging genuinely different goods/services
+    into one apparent market.
+  - Legitimate price premiums for urgency, remote delivery locations, or
+    custom specifications not visible in the description text.
+  - Portals that record a contract ceiling or total potential value where
+    peers record single obligations, inflating the apparent price.
+validation_approach: >
+  Reviewer reads the full award description and any public solicitation,
+  compares against the named peer awards attached as evidence, and checks
+  whether the flagged amount is a ceiling/total-value figure rather than a
+  comparable obligation before treating the price gap as real.
+output_fields:
+  - subject_type: award
+  - award_id
+  - category_key
+  - peer_award_ids
+  - category_median
+  - peer_percentile
+  - severity
+  - confidence
+  - evidence_refs

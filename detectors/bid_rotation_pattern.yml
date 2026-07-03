@@ -1,0 +1,67 @@
+id: bid_rotation_pattern
+version: "0.1"
+taxonomy_ref: [PROC-1, NET-2]
+# Structural-gap detector (taxonomy note 5): public award data records
+# winners only. Coordination itself is never observable here; this spec
+# surfaces rotation-SHAPED award histories, a weak proxy, and its signals
+# must carry that statement verbatim in the UI.
+purpose: Surface (agency, category) award streams where a closed, interlinked vendor set wins in an alternating pattern.
+hypothesis: >
+  Public data cannot confirm bid coordination; this signal reflects a weak
+  proxy. A fixed small set of vendors winning all awards in an agency's
+  category stream, in alternation, with stable shares and with independent
+  links among the set (shared address or officers), is a pattern consistent
+  with coordinated bidding — and also with thin markets and lawful rotation
+  policies.
+required_fields:
+  - award.agency_id
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - award.description          # for category grouping (v0: naive keywords)
+  - relationship_edge.relation # NET-1 interlinks: shared_address, officer_of
+  - address.normalized
+logic: >
+  For each (agency, category) stream with >= 8 awards spanning >= 24 months,
+  flag streams where (a) a fixed set of 2-5 vendors wins every award with no
+  new entrants, (b) no vendor wins more than 2 consecutive awards, and
+  (c) each vendor's dollar share moves < 10 percentage points between
+  consecutive 12-month windows. A signal stays at low confidence unless at
+  least one NET-1 edge (shared normalized address or overlapping officer)
+  links members of the set. A reviewer can verify by listing the stream's
+  awards in date order and checking the winner sequence and shares by hand.
+severity_inputs:
+  - combined_stream_dollars
+  - stream_duration_months
+confidence_inputs:
+  - interlink_edge_count            # NET-1 edges among the vendor set
+  - market_breadth_estimate         # vendors ever awarded in this category/region
+  - offer_count_availability        # competition indicators present at all?
+  - category_classification_quality
+false_positive_risks:
+  - Thin markets - a small region may have only 2-4 qualified vendors, so
+    alternation is what honest competition also looks like.
+  - Deliberate rotation policies - some jurisdictions' purchasing manuals
+    encourage rotating quotes among small businesses.
+  - Multiple-award vehicles (IDIQ/BPA) allocating task orders among holders
+    by design.
+  - Capacity cycling - small firms decline work when full, producing
+    alternation without coordination.
+  - Category misclassification making unrelated awards look like one market.
+validation_approach: >
+  Reviewer establishes market breadth (how many vendors ever won or
+  registered in the category/region), checks the buyer's published
+  purchasing policy for lawful rotation practices, checks whether the awards
+  sit under a multiple-award vehicle, and pulls bid tabulations where the
+  jurisdiction publishes them. Rotation shape alone never escalates; require
+  at least one independent corroborating link among the vendor set.
+output_fields:
+  - subject_type: cluster
+  - agency_id
+  - vendor_ids
+  - award_ids
+  - category_key
+  - interlink_edge_ids
+  - severity
+  - confidence
+  - evidence_refs

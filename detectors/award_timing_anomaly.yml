@@ -1,0 +1,63 @@
+id: award_timing_anomaly
+version: "0.1"
+taxonomy_ref: [PROC-5]   # short-window facet; fiscal-timing facet proposed as a new taxonomy entry (TIME-1) in the next revision
+# NOTE: the short-window check requires solicitation posting dates, which our
+# schema does not yet hold (Solicitation model or posted_date column needed)
+# and whose joinability to awards must be verified per source (federal
+# opportunities data: concept high confidence, mechanics unverified).
+purpose: Surface awards whose timing is anomalous relative to procurement norms — vendor-concentrated fiscal-year-end rushes and implausibly short solicitation-to-award windows.
+hypothesis: >
+  A vendor capturing an outsized share of an agency's year-end award rush,
+  or awards finalized within days of solicitation posting outside any
+  emergency context, may indicate a pre-selected outcome or hurried
+  obligation that bypassed normal competition — a hypothesis that must be
+  weighed against the very common lawful year-end obligation of expiring
+  funds.
+required_fields:
+  - award.agency_id
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - config.fiscal_year_end       # per jurisdiction, versioned config with citation
+  - solicitation.posted_date     # schema extension; source-dependent, verify joinability
+logic: >
+  Check A (year-end concentration): for each agency and fiscal year, compute
+  the share of award dollars landing in the final 14 days of the fiscal
+  year. Flag a vendor only when its share of that year-end tranche is >= 3x
+  its share of the agency's dollars across the rest of the year, with at
+  least 3 year-end awards. Check B (short window): where a solicitation
+  record joins to the award, flag award_date minus posted_date < 7 calendar
+  days with no emergency indicator on the record. Both checks are
+  hand-verifiable from the dated award list and the solicitation record.
+severity_inputs:
+  - anomalous_award_dollars
+  - count_of_anomalous_awards
+confidence_inputs:
+  - fiscal_calendar_verification     # is the assumed FY end correct for this jurisdiction?
+  - solicitation_join_quality        # did we join the right solicitation to the award?
+  - population_base_rate_sample      # enough agency history to compute rest-of-year share
+false_positive_risks:
+  - Lawful year-end obligation of expiring funds - a well-documented, common
+    practice; the base rate is high, so check A is triage-context only.
+  - Genuine emergency or urgent procurements that lawfully compress the
+    solicitation-to-award window.
+  - Amended or reposted solicitations - the joined posting date may reflect
+    a repost, making the true open window longer than computed.
+  - Fiscal-calendar mismatch - the wrong year-end assumed for the
+    jurisdiction or fund type invalidates check A entirely.
+validation_approach: >
+  Reviewer verifies the jurisdiction's fiscal calendar and whether expiring
+  funds explain the cluster, reads the solicitation record for emergency
+  justification and amendment history, and compares the vendor's year-end
+  share against the agency-wide base rate shown alongside the signal
+  (Detection Principle 7).
+output_fields:
+  - subject_type: vendor
+  - agency_id
+  - award_ids
+  - check_type            # year_end_concentration | short_window
+  - year_end_share_ratio
+  - window_days
+  - severity
+  - confidence
+  - evidence_refs

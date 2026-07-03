@@ -1,0 +1,60 @@
+id: sole_source_repeat
+version: "0.1"
+taxonomy_ref: [PROC-4]
+# NOTE: requires schema extension — ContractAward currently lacks competition
+# fields. Exact FPDS/USAspending field names and code lists (extent_competed,
+# justification codes, offer counts) MUST be verified before ingestion
+# (taxonomy PROC-4, confidence: concepts high, exact spellings moderate).
+purpose: Surface agency–vendor pairs accumulating repeated non-competed awards where competition appears feasible.
+hypothesis: >
+  An agency repeatedly awarding to one vendor without competition —
+  especially with escalating amounts or the same urgency-type justification
+  used serially — may indicate steering toward a preferred vendor. The same
+  pattern is also produced by lawful sole-source situations, so this is a
+  hypothesis to be checked against the published justification record.
+required_fields:
+  - award.agency_id
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - award.extent_competed              # schema extension needed
+  - award.competition_justification_code   # schema extension needed
+logic: >
+  For each (agency_id, vendor_id) pair over a rolling 36-month window, count
+  awards coded as non-competed. Flag pairs with >= 3 non-competed awards AND
+  non-competed dollars >= 80% of the pair's total dollars in the window.
+  Weight up when the same justification code repeats across awards or when
+  amounts escalate award over award. Missing or placeholder competition
+  codes count as UNKNOWN, never as non-competed, and reduce confidence.
+severity_inputs:
+  - noncompeted_dollars_total
+  - noncompeted_award_count
+  - amount_escalation_across_awards
+confidence_inputs:
+  - competition_code_population_rate   # how completely the agency codes this field
+  - justification_code_specificity     # a named statutory basis vs a generic code
+  - peer_baseline_sample_size          # comparable (agency, category) pairs available
+false_positive_risks:
+  - Lawful sole-source categories - genuine single supplier, proprietary or
+    patented items, mandated sources, or documented national-security carve-outs.
+  - Directed set-aside program awards (e.g., certain 8(a) awards) that are
+    non-competed by design and lawful - program rules must be verified.
+  - Follow-on awards with a published Justification & Approval where
+    switching vendors carries documented technical risk.
+  - Data-entry defaults and uneven coding - a missing competition code
+    misread as a non-competed action.
+validation_approach: >
+  Reviewer locates the published Justification & Approval (or the
+  jurisdiction's equivalent public record) for the flagged awards, verifies
+  the competition code semantics against the current official code list, and
+  compares the pair against peer agencies buying the same category before
+  any escalation.
+output_fields:
+  - subject_type: vendor
+  - agency_id
+  - award_ids
+  - noncompeted_dollar_share
+  - repeated_justification_code
+  - severity
+  - confidence
+  - evidence_refs

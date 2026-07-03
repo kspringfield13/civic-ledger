@@ -1,0 +1,66 @@
+id: new_vendor_rapid_award
+version: "0.1"
+taxonomy_ref: [VEND-1]
+# NOTE: requires schema extension — Vendor currently lacks registration_date.
+# Source is corporate-registry incorporation date or SAM registration date
+# (Tier 2 per DATA_SOURCE_POLICY.md); availability in public extracts must
+# be verified per jurisdiction before ingestion. Per taxonomy VEND-1, this
+# detector is weighted LOW standalone and acts mainly as a confidence
+# booster on other signals.
+purpose: Surface newly registered vendors winning unusually large award volumes shortly after registration (shell-vendor risk).
+hypothesis: >
+  A vendor whose first award arrives shortly after its registration, and
+  whose early award volume far exceeds what new vendors typically win, may
+  lack the operating history the awards imply — a pattern consistent with a
+  shell or front entity, and equally consistent with a legitimate startup or
+  a lawful single-project SPV.
+required_fields:
+  - vendor.registration_date   # schema extension; registry or SAM date, Tier 2
+  - award.vendor_id
+  - award.amount
+  - award.award_date
+  - vendor.primary_address_id
+  - address.normalized         # for address-type confidence input (agent/coworking allowlist)
+logic: >
+  Flag a vendor when (a) its first award_date is within 180 days of
+  registration_date AND (b) its total award dollars in the 12 months after
+  registration exceed the 90th percentile of first-year totals among all
+  vendors in the dataset with a known registration_date. A reviewer can
+  verify by comparing the two dates and recomputing the first-year total
+  against the published percentile table. Standalone signals are capped at
+  low-medium confidence; the detector primarily raises confidence on
+  co-occurring signals (shared_address_cluster, bid_rotation_pattern,
+  debarred_vendor_match successor checks).
+severity_inputs:
+  - first_year_award_dollars
+  - largest_single_award_amount
+confidence_inputs:
+  - registration_date_source_quality   # registry vs SAM vs inferred; staleness
+  - address_type                       # residential/agent/virtual per allowlist
+  - single_agency_dependence_share     # all awards from one agency?
+  - officer_overlap_with_other_vendors # PersonOfficer links to other award-winning vendors
+false_positive_risks:
+  - Legitimate startups and small home-based businesses - very common,
+    especially among set-aside awardees; a residential address and young
+    registration are normal for them.
+  - Lawful single-project SPVs or holding structures (common in
+    construction and energy) formed specifically to hold one award.
+  - Registry data staleness or lag - a continuing business under a new
+    lawful registration, or a registration date recorded late.
+  - Percentile artifacts - datasets dominated by small awards make any
+    mid-size first-year total look extreme.
+validation_approach: >
+  Reviewer pulls the corporate registry record (officers, filing history),
+  checks whether a set-aside type or disclosed parent explains the profile,
+  and looks for continuity with a predecessor entity. Because the innocent
+  base rate is high, escalation requires at least one independent
+  co-occurring signal on the same vendor.
+output_fields:
+  - subject_type: vendor
+  - first_award_id
+  - days_registration_to_first_award
+  - first_year_award_dollars
+  - first_year_percentile
+  - severity
+  - confidence
+  - evidence_refs
